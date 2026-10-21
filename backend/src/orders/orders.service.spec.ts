@@ -64,4 +64,26 @@ describe('OrdersService', () => {
       ),
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
   });
+
+  it('does not create or decrement anything when one item in a multi-item order fails', async () => {
+    const { service, tx } = createService([
+      { id: 1n, productName: 'Kopi Susu Aren', stock: 10, price: new Prisma.Decimal('6000.00') },
+      { id: 2n, productName: 'Teh Melati Dingin', stock: 0, price: new Prisma.Decimal('7000.00') },
+    ]);
+
+    await expect(
+      service.create(
+        {
+          customer_id: 'customer-1',
+          items: [
+            { product_id: 1, quantity: 2 },
+            { product_id: 2, quantity: 1 },
+          ],
+        },
+        '1',
+      ),
+    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+    expect(tx.order.create).not.toHaveBeenCalled();
+    expect(tx.product.update).not.toHaveBeenCalled();
+  });
 });

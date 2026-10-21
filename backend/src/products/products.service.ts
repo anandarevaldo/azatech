@@ -24,6 +24,9 @@ export class ProductsService {
             ],
           }
         : {}),
+      ...(query.stock_status === 'low' ? { stock: { gt: 0, lt: 5 } } : {}),
+      ...(query.stock_status === 'out' ? { stock: 0 } : {}),
+      ...(query.stock_status === 'available' ? { stock: { gte: 5 } } : {}),
     };
     const orderBy = {
       name: { productName: query.order },

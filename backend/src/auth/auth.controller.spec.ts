@@ -66,4 +66,13 @@ describe('AuthController', () => {
       .expect(200)
       .expect(({ body }) => expect(body.id).toBe('1'));
   });
+
+  it('refreshes an access token', async () => {
+    authService.refresh.mockResolvedValueOnce({ access_token: 'refreshed-access' });
+    await request(app.getHttpServer())
+      .post('/api/auth/refresh')
+      .send({ refresh_token: 'refresh' })
+      .expect(200)
+      .expect(({ body }) => expect(body.access_token).toBe('refreshed-access'));
+  });
 });

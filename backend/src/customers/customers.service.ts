@@ -12,8 +12,12 @@ export class CustomersService {
   async list(query: ListCustomersDto) {
     const where = {
       deletedAt: null,
+      ...(query.gender ? { gender: query.gender } : {}),
       ...(query.search
-        ? { customerName: { contains: query.search, mode: 'insensitive' as const } }
+        ? { OR: [
+            { customerName: { contains: query.search, mode: 'insensitive' as const } },
+            { phone: { contains: query.search, mode: 'insensitive' as const } },
+          ] }
         : {}),
     };
     const skip = (query.page - 1) * query.per_page;
@@ -23,6 +27,7 @@ export class CustomersService {
         orderBy: { customerName: 'asc' },
         skip,
         take: query.per_page,
+        include: { _count: { select: { orders: true } } },
       }),
       this.prisma.customer.count({ where }),
     ]);

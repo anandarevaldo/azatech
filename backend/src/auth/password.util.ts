@@ -1,12 +1,14 @@
-import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import * as bcrypt from 'bcryptjs';
+import { createHash, scryptSync, timingSafeEqual } from 'node:crypto';
 
 export function hashPassword(password: string): string {
-  const salt = randomBytes(16).toString('hex');
-  const key = scryptSync(password, salt, 64).toString('hex');
-  return `scrypt:${salt}:${key}`;
+  return bcrypt.hashSync(password, 12);
 }
 
 export function verifyPassword(password: string, encodedHash: string): boolean {
+  if (encodedHash.startsWith('$2')) return bcrypt.compareSync(password, encodedHash);
+
+  // Kompatibilitas satu kali untuk hash scrypt lama sebelum user menjalankan seed ulang.
   const [algorithm, salt, encodedKey] = encodedHash.split(':');
   if (algorithm !== 'scrypt' || !salt || !encodedKey) return false;
 

@@ -26,4 +26,8 @@ export class ListProductsDto {
   @IsOptional()
   @IsIn(['asc', 'desc'])
   order: 'asc' | 'desc' = 'asc';
+
+  @IsOptional()
+  @IsIn(['all', 'available', 'low', 'out'])
+  stock_status: 'all' | 'available' | 'low' | 'out' = 'all';
 }

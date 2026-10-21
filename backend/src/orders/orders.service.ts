@@ -116,11 +116,15 @@ export class OrdersService {
   async list(query: ListOrdersDto) {
     const where = {
       ...(query.customer_id ? { customerId: query.customer_id } : {}),
+      ...(query.search ? { OR: [
+        { orderNumber: { contains: query.search, mode: 'insensitive' as const } },
+        { customer: { customerName: { contains: query.search, mode: 'insensitive' as const } } },
+      ] } : {}),
       ...(query.from || query.to
         ? {
             orderDate: {
-              ...(query.from && { gte: new Date(query.from) }),
-              ...(query.to && { lte: new Date(query.to) }),
+              ...(query.from && { gte: new Date(`${query.from}T00:00:00+07:00`) }),
+              ...(query.to && { lt: new Date(Date.parse(`${query.to}T00:00:00+07:00`) + 24 * 60 * 60 * 1000) }),
             },
           }
         : {}),

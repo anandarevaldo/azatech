@@ -26,4 +26,8 @@ export class ListOrdersDto {
   @IsOptional()
   @IsString()
   customer_id?: string;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
 }
