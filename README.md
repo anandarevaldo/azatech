@@ -53,7 +53,7 @@ docker compose up --build -d
 docker compose run --rm backend node -r dotenv/config -r ts-node/register prisma/seed.ts
 ```
 
-Aplikasi tersedia di `http://localhost:3000`, API di `http://localhost:3001/api`, dan PostgreSQL di port `5432`. Data PostgreSQL disimpan pada volume `azatech-postgres-data`.
+Aplikasi tersedia di `http://localhost:3000`, API di `http://localhost:3001/api`, dan PostgreSQL di port `5432`. Data PostgreSQL disimpan pada volume `azatech-postgres-data`. Jika port tersebut sedang dipakai, override dengan `FRONTEND_HOST_PORT`, `BACKEND_HOST_PORT`, dan `NEXT_PUBLIC_API_URL`.
 
 ## Logika order
 
@@ -65,9 +65,10 @@ Order dibuat dalam satu database transaction. Server mengambil harga terbaru dar
 cd backend
 npm test -- --runInBand
 npm run build
+npm run test:integration
 ```
 
-Test mencakup login, validasi input, akses tanpa token, order sukses, stok tidak cukup, dan produk duplikat.
+Test unit dan controller mencakup login, validasi input, akses tanpa token, order sukses, stok tidak cukup, dan produk duplikat. Integration test PostgreSQL dapat dijalankan dengan `npm run test:integration`; test ini membuat fixture terisolasi, memanggil REST API, memverifikasi transaction serta snapshot harga, lalu membersihkan fixture.
 
 ## Asumsi dan keterbatasan
 

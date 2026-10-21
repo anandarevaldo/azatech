@@ -19,10 +19,10 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     if (refreshToken) {
       const refreshResponse = await fetch(`${API_URL}/auth/refresh`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: refreshToken }) });
       if (refreshResponse.ok) {
-        const refreshed = await refreshResponse.json() as { access_token?: string };
-        if (refreshed.access_token) {
-          localStorage.setItem('access_token', refreshed.access_token);
-          response = await request(refreshed.access_token);
+        const refreshed = await refreshResponse.json() as { data?: { access_token?: string } };
+        if (refreshed.data?.access_token) {
+          localStorage.setItem('access_token', refreshed.data.access_token);
+          response = await request(refreshed.data.access_token);
         }
       }
     }

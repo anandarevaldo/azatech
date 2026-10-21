@@ -1,4 +1,4 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, UnprocessableEntityException, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import request = require('supertest');
@@ -10,10 +10,10 @@ import { signToken } from './token.util';
 describe('AuthController', () => {
   let app: INestApplication;
   const authService = {
-    login: jest.fn().mockResolvedValue({ access_token: 'access', refresh_token: 'refresh' }),
+    login: jest.fn().mockResolvedValue({ success: true, message: 'Login berhasil', data: { access_token: 'access', refresh_token: 'refresh' } }),
     refresh: jest.fn(),
     logout: jest.fn().mockResolvedValue(undefined),
-    me: jest.fn().mockResolvedValue({ id: '1', name: 'Admin', email: 'admin@example.com' }),
+    me: jest.fn().mockResolvedValue({ success: true, message: 'OK', data: { id: '1', name: 'Admin', email: 'admin@example.com' } }),
   };
   const configService = {
     getOrThrow: jest.fn().mockReturnValue('test-secret'),
@@ -30,7 +30,14 @@ describe('AuthController', () => {
     }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('api');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      exceptionFactory: (errors) => new UnprocessableEntityException({
+        message: 'Validasi gagal',
+        errors: { validation: errors.flatMap((error) => Object.values(error.constraints ?? {})) },
+      }),
+    }));
     await app.init();
   });
 
@@ -42,7 +49,8 @@ describe('AuthController', () => {
       .send({ email: 'admin@example.com', password: 'password123' })
       .expect(200)
       .expect(({ body }) => {
-        expect(body.access_token).toBe('access');
+        expect(body.success).toBe(true);
+        expect(body.data.access_token).toBe('access');
         expect(authService.login).toHaveBeenCalled();
       });
   });
@@ -51,7 +59,7 @@ describe('AuthController', () => {
     await request(app.getHttpServer())
       .post('/api/auth/login')
       .send({ email: 'not-an-email', password: 'short' })
-      .expect(400);
+      .expect(422);
   });
 
   it('rejects protected access without a token', async () => {
@@ -64,15 +72,15 @@ describe('AuthController', () => {
       .get('/api/auth/me')
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
-      .expect(({ body }) => expect(body.id).toBe('1'));
+      .expect(({ body }) => expect(body.data.id).toBe('1'));
   });
 
   it('refreshes an access token', async () => {
-    authService.refresh.mockResolvedValueOnce({ access_token: 'refreshed-access' });
+    authService.refresh.mockResolvedValueOnce({ success: true, message: 'Token berhasil diperbarui', data: { access_token: 'refreshed-access' } });
     await request(app.getHttpServer())
       .post('/api/auth/refresh')
       .send({ refresh_token: 'refresh' })
       .expect(200)
-      .expect(({ body }) => expect(body.access_token).toBe('refreshed-access'));
+      .expect(({ body }) => expect(body.data.access_token).toBe('refreshed-access'));
   });
 });

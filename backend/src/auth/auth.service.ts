@@ -5,6 +5,7 @@ import { LoginDto } from './dto/login.dto';
 import { AuthUser } from './auth.types';
 import { hashRefreshToken, verifyPassword } from './password.util';
 import { signToken, verifyToken } from './token.util';
+import { successResponse } from '../common/api-response';
 
 @Injectable()
 export class AuthService {
@@ -26,17 +27,17 @@ export class AuthService {
       data: { refreshTokenHash: hashRefreshToken(refreshToken) },
     });
 
-    return {
+    return successResponse('Login berhasil', {
       access_token: accessToken,
       refresh_token: refreshToken,
       user: this.toAuthUser(user),
-    };
+    });
   }
 
-  async me(userId: string): Promise<AuthUser> {
+  async me(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: BigInt(userId) } });
     if (!user) throw new UnauthorizedException('User tidak ditemukan');
-    return this.toAuthUser(user);
+    return successResponse('OK', this.toAuthUser(user));
   }
 
   async logout(userId: string): Promise<void> {
@@ -57,7 +58,9 @@ export class AuthService {
       if (!user || user.refreshTokenHash !== hashRefreshToken(refreshToken)) {
         throw new UnauthorizedException('Refresh token tidak valid');
       }
-      return { access_token: this.createToken(payload.sub, 'access') };
+      return successResponse('Token berhasil diperbarui', {
+        access_token: this.createToken(payload.sub, 'access'),
+      });
     } catch {
       throw new UnauthorizedException('Refresh token tidak valid atau sudah kedaluwarsa');
     }

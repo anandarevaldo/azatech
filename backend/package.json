@@ -11,6 +11,7 @@
     "start:prod": "node dist/main.js",
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "test": "jest",
+    "test:integration": "RUN_INTEGRATION_TESTS=1 node -r dotenv/config ./node_modules/jest/bin/jest.js --runInBand --runTestsByPath src/orders/orders.integration.spec.ts",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "postinstall": "prisma skills sync || exit 0"

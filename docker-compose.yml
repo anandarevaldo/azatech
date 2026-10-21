@@ -30,7 +30,7 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-replace-with-another-long-random-value}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-replace-with-a-local-admin-password}
     ports:
-      - "3001:3001"
+      - "${BACKEND_HOST_PORT:-3001}:3001"
     depends_on:
       db:
         condition: service_healthy
@@ -40,13 +40,13 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: http://localhost:3001/api
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001/api}
     container_name: azatech-frontend
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3001/api
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001/api}
     ports:
-      - "3000:3000"
+      - "${FRONTEND_HOST_PORT:-3000}:3000"
     depends_on:
       - backend
 

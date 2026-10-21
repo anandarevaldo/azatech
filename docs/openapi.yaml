@@ -19,13 +19,21 @@ paths:
             schema:
               $ref: '#/components/schemas/LoginRequest'
       responses:
-        '200': { description: Token access dan refresh }
+        '200':
+          description: Token access dan refresh
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthLoginResponse' }
         '401': { description: Credential salah }
   /auth/me:
     get:
       summary: Profil user aktif
       responses:
-        '200': { description: Profil user }
+        '200':
+          description: Profil user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserResponse' }
         '401': { description: Token tidak valid }
   /auth/refresh:
     post:
@@ -41,7 +49,11 @@ paths:
               properties:
                 refresh_token: { type: string }
       responses:
-        '200': { description: Access token baru }
+        '200':
+          description: Access token baru
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthRefreshResponse' }
         '401': { description: Refresh token tidak valid }
   /auth/logout:
     post:
@@ -128,6 +140,44 @@ components:
     Page: { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
     PerPage: { name: per_page, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 10 } }
   schemas:
+    AuthLoginResponse:
+      type: object
+      required: [success, message, data]
+      properties:
+        success: { type: boolean, example: true }
+        message: { type: string, example: Login berhasil }
+        data:
+          type: object
+          required: [access_token, refresh_token, user]
+          properties:
+            access_token: { type: string }
+            refresh_token: { type: string }
+            user: { $ref: '#/components/schemas/User' }
+    AuthRefreshResponse:
+      type: object
+      required: [success, message, data]
+      properties:
+        success: { type: boolean, example: true }
+        message: { type: string, example: Token berhasil diperbarui }
+        data:
+          type: object
+          required: [access_token]
+          properties:
+            access_token: { type: string }
+    UserResponse:
+      type: object
+      required: [success, message, data]
+      properties:
+        success: { type: boolean, example: true }
+        message: { type: string, example: OK }
+        data: { $ref: '#/components/schemas/User' }
+    User:
+      type: object
+      required: [id, name, email]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string, format: email }
     LoginRequest:
       type: object
       required: [email, password]
