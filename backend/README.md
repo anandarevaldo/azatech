@@ -11,4 +11,4 @@ npm test -- --runInBand
 npm run build
 ```
 
-Migration dijalankan dengan `npx prisma migrate deploy`. Seed dijalankan dengan `npx ts-node prisma/seed.ts` setelah `SEED_ADMIN_PASSWORD` tersedia di `.env`; password admin disimpan sebagai bcrypt hash.
+Migration dijalankan dengan `npx prisma migrate deploy`. Seed dijalankan dengan `node -r dotenv/config -r ts-node/register prisma/seed.ts` setelah `SEED_ADMIN_PASSWORD` tersedia di `.env`; password admin disimpan sebagai bcrypt hash.

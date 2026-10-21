@@ -26,11 +26,11 @@ git clone https://github.com/anandarevaldo/azatech.git
 cd azatech/backend && npm install
 cp .env.example .env
 npx prisma migrate deploy
-npx ts-node prisma/seed.ts
+node -r dotenv/config -r ts-node/register prisma/seed.ts
 cd ../frontend && npm install && cp .env.example .env.local
 ```
 
-Migration dijalankan dengan `npx prisma migrate deploy`, lalu seed dengan `npx ts-node prisma/seed.ts`. Seed membuat minimal 20 produk, 15 customer, dan 30 order historis, ditambah data tren demo untuk dashboard. Untuk development, backend berjalan di port 3001 dan frontend di port 3000.
+Migration dijalankan dengan `npx prisma migrate deploy`, lalu seed dengan `node -r dotenv/config -r ts-node/register prisma/seed.ts`. Seed membuat minimal 20 produk, 15 customer, dan 30 order historis, ditambah data tren demo untuk dashboard. Untuk development, backend berjalan di port 3001 dan frontend di port 3000.
 
 Akun seed lokal:
 
@@ -43,6 +43,17 @@ Akun seed lokal:
 cd backend && npm run start:dev
 cd frontend && npm run dev
 ```
+
+## Menjalankan dengan Docker Compose
+
+Docker Compose menyediakan PostgreSQL, backend, dan frontend. Salin `.env.example` ke `.env` di root jika ingin mengganti secret default, lalu jalankan:
+
+```bash
+docker compose up --build -d
+docker compose run --rm backend node -r dotenv/config -r ts-node/register prisma/seed.ts
+```
+
+Aplikasi tersedia di `http://localhost:3000`, API di `http://localhost:3001/api`, dan PostgreSQL di port `5432`. Data PostgreSQL disimpan pada volume `azatech-postgres-data`.
 
 ## Logika order
 

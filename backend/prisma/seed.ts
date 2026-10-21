@@ -14,6 +14,12 @@ function hashPassword(password: string): string {
   return bcrypt.hashSync(password, 12);
 }
 
+function dateKey(date: Date): string {
+  return [date.getFullYear(), date.getMonth() + 1, date.getDate()]
+    .map((part) => String(part).padStart(2, '0'))
+    .join('');
+}
+
 async function main(): Promise<void> {
   const adminPassword = process.env.SEED_ADMIN_PASSWORD;
   if (!adminPassword) {
@@ -103,9 +109,7 @@ async function main(): Promise<void> {
       const quantity = (index % 2) + 1;
       const unitPrice = new Prisma.Decimal(product.price);
       const subtotal = unitPrice.mul(quantity);
-      const date = [orderDate.getFullYear(), orderDate.getMonth() + 1, orderDate.getDate()]
-        .map((part) => String(part).padStart(2, '0'))
-        .join('');
+      const date = dateKey(orderDate);
 
       await prisma.$transaction([
         prisma.order.create({
@@ -128,45 +132,69 @@ async function main(): Promise<void> {
     }
   }
 
-  // Tambahkan data tren demo deterministik sekali saja agar grafik 7 hari
-  // menunjukkan volume harian yang berbeda saat database lokal sudah terisi.
-  const demoTrendExists = await prisma.order.findFirst({
+  // Normalisasi data trend lama dari seed sebelumnya ke format invoice resmi.
+  const legacyTrendOrders = await prisma.order.findMany({
     where: { orderNumber: { startsWith: 'DEMO-TREND-' } },
-    select: { id: true },
+    select: { id: true, orderDate: true },
+    orderBy: { orderDate: 'asc' },
   });
-  if (!demoTrendExists) {
-    const customers = await prisma.customer.findMany({ take: 15, orderBy: { createdAt: 'asc' } });
-    const seededProducts = await prisma.product.findMany({ take: 20, orderBy: { id: 'asc' } });
-    const ordersPerDay = [0, 2, 4, 1, 3, 2, 5];
-    for (let dayIndex = 0; dayIndex < ordersPerDay.length; dayIndex += 1) {
-      for (let sequence = 0; sequence < ordersPerDay[dayIndex]; sequence += 1) {
-        const orderDate = new Date();
-        orderDate.setHours(9 + sequence * 2, 15, 0, 0);
-        orderDate.setDate(orderDate.getDate() - (6 - dayIndex));
-        const product = seededProducts[(dayIndex * 3 + sequence) % seededProducts.length];
-        const unitPrice = new Prisma.Decimal(product.price);
-        const subtotal = unitPrice;
-        const date = [orderDate.getFullYear(), orderDate.getMonth() + 1, orderDate.getDate()]
-          .map((part) => String(part).padStart(2, '0'))
-          .join('');
 
-        await prisma.$transaction([
-          prisma.order.create({
-            data: {
-              orderNumber: `DEMO-TREND-${date}-${String(sequence + 1).padStart(2, '0')}`,
-              customerId: customers[(dayIndex + sequence) % customers.length].id,
-              createdById: admin.id,
-              orderDate,
-              totalAmount: subtotal,
-              items: { create: [{ productId: product.id, quantity: 1, unitPrice, subtotal }] },
-            },
-          }),
-          prisma.product.update({
-            where: { id: product.id },
-            data: { stock: { decrement: 1 } },
-          }),
-        ]);
-      }
+  const legacySequenceByDate = new Map<string, number>();
+  for (const order of legacyTrendOrders) {
+    const date = dateKey(order.orderDate);
+    const sequence = (legacySequenceByDate.get(date) ?? 1) + 1;
+    legacySequenceByDate.set(date, sequence);
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { orderNumber: `INV-${date}-${String(sequence).padStart(4, '0')}` },
+    });
+  }
+
+  // Tambahkan data tren demo deterministik agar grafik 7 hari terisi penuh.
+  const customers = await prisma.customer.findMany({ take: 15, orderBy: { createdAt: 'asc' } });
+  const seededProducts = await prisma.product.findMany({ take: 20, orderBy: { id: 'asc' } });
+  const ordersPerDay = [0, 2, 4, 1, 3, 2, 5];
+  for (let dayIndex = 0; dayIndex < ordersPerDay.length; dayIndex += 1) {
+    const orderDateForDay = new Date();
+    orderDateForDay.setDate(orderDateForDay.getDate() - (6 - dayIndex));
+    const date = dateKey(orderDateForDay);
+    const existingOrders = await prisma.order.findMany({
+      where: {
+        orderNumber: {
+          in: Array.from({ length: ordersPerDay[dayIndex] }, (_, index) =>
+            `INV-${date}-${String(index + 2).padStart(4, '0')}`),
+        },
+      },
+      select: { orderNumber: true },
+    });
+    const existingNumbers = new Set(existingOrders.map((order) => order.orderNumber));
+
+    for (let sequence = 0; sequence < ordersPerDay[dayIndex]; sequence += 1) {
+      const orderDate = new Date(orderDateForDay);
+      orderDate.setHours(9 + sequence * 2, 15, 0, 0);
+      const orderNumber = `INV-${date}-${String(sequence + 2).padStart(4, '0')}`;
+      if (existingNumbers.has(orderNumber)) continue;
+
+      const product = seededProducts[(dayIndex * 3 + sequence) % seededProducts.length];
+      const unitPrice = new Prisma.Decimal(product.price);
+      const subtotal = unitPrice;
+
+      await prisma.$transaction([
+        prisma.order.create({
+          data: {
+            orderNumber,
+            customerId: customers[(dayIndex + sequence) % customers.length].id,
+            createdById: admin.id,
+            orderDate,
+            totalAmount: subtotal,
+            items: { create: [{ productId: product.id, quantity: 1, unitPrice, subtotal }] },
+          },
+        }),
+        prisma.product.update({
+          where: { id: product.id },
+          data: { stock: { decrement: 1 } },
+        }),
+      ]);
     }
   }
 }
