@@ -8,10 +8,12 @@ import {
   ParseIntPipe,
   Post,
   Query,
+  Res,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
+import { Response } from 'express';
 import { AuthGuard } from '../auth/auth.guard';
 import { AuthUser } from '../auth/auth.types';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -28,6 +30,15 @@ export class OrdersController {
   @Get()
   list(@Query() query: ListOrdersDto) {
     return this.ordersService.list(query);
+  }
+
+  @Get('export')
+  async export(@Query() query: ListOrdersDto, @Res() response: Response): Promise<void> {
+    const csv = await this.ordersService.exportCsv(query);
+    response
+      .header('Content-Type', 'text/csv; charset=utf-8')
+      .header('Content-Disposition', 'attachment; filename="riwayat-order.csv"')
+      .send(`\ufeff${csv}`);
   }
 
   @Get(':id')

@@ -126,6 +126,20 @@ paths:
       responses:
         '201': { description: Order berhasil dibuat }
         '422': { description: Stok tidak mencukupi atau input invalid }
+  /orders/export:
+    get:
+      summary: Export riwayat order ke CSV
+      parameters:
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
+        - { name: customer_id, in: query, schema: { type: string, format: uuid } }
+        - { name: search, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: File CSV riwayat order
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
   /orders/{id}:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     get: { summary: Detail order, responses: { '200': { description: Detail order } } }

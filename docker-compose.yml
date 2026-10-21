@@ -8,7 +8,9 @@ services:
       POSTGRES_USER: azatech
       POSTGRES_PASSWORD: azatech
     ports:
-      - "5432:5432"
+      # 5432 is commonly occupied by a local PostgreSQL installation.
+      # Keep PostgreSQL's container port unchanged and expose it on 55432.
+      - "${POSTGRES_HOST_PORT:-55432}:5432"
     volumes:
       - azatech-postgres-data:/var/lib/postgresql/data
     healthcheck:

@@ -53,7 +53,7 @@ docker compose up --build -d
 docker compose run --rm backend node -r dotenv/config -r ts-node/register prisma/seed.ts
 ```
 
-Aplikasi tersedia di `http://localhost:3000`, API di `http://localhost:3001/api`, dan PostgreSQL di port `5432`. Data PostgreSQL disimpan pada volume `azatech-postgres-data`. Jika port tersebut sedang dipakai, override dengan `FRONTEND_HOST_PORT`, `BACKEND_HOST_PORT`, dan `NEXT_PUBLIC_API_URL`.
+Aplikasi tersedia di `http://localhost:3000`, API di `http://localhost:3001/api`, dan PostgreSQL Docker di port host `55432` (container tetap `5432`). Data PostgreSQL disimpan pada volume `azatech-postgres-data`. Jika port tersebut sedang dipakai, override dengan `POSTGRES_HOST_PORT`, `FRONTEND_HOST_PORT`, `BACKEND_HOST_PORT`, dan `NEXT_PUBLIC_API_URL`.
 
 ## Logika order
 
@@ -70,13 +70,16 @@ npm run test:integration
 
 Test unit dan controller mencakup login, validasi input, akses tanpa token, order sukses, stok tidak cukup, dan produk duplikat. Integration test PostgreSQL dapat dijalankan dengan `npm run test:integration`; test ini membuat fixture terisolasi, memanggil REST API, memverifikasi transaction serta snapshot harga, lalu membersihkan fixture.
 
+GitHub Actions menjalankan migration, unit/controller test, integration test PostgreSQL, backend build, dan frontend build pada setiap push atau pull request ke `main`.
+
 ## Asumsi dan keterbatasan
 
 - Frontend menyimpan token di `localStorage` untuk scope technical test; produksi sebaiknya menggunakan httpOnly secure cookie.
 - Pagination sudah tersedia di API; beberapa tabel frontend masih menggunakan kontrol sederhana.
 - Seed membuat 1 admin, 20 produk, 15 customer, dan minimal 30 order dalam 30 hari terakhir.
 - Frontend melakukan refresh access token sebelum mengarahkan user ke login.
-- Jika ada waktu tambahan: refresh-token rotation, OpenAPI UI, E2E Playwright, Docker Compose, dan GitHub Actions.
+- Riwayat order dapat diekspor ke CSV dengan filter yang sedang aktif.
+- Jika ada waktu tambahan: refresh-token rotation, OpenAPI UI, dan E2E Playwright.
 
 ## AI Usage
 

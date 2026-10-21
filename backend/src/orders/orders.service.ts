@@ -114,21 +114,7 @@ export class OrdersService {
   }
 
   async list(query: ListOrdersDto) {
-    const where = {
-      ...(query.customer_id ? { customerId: query.customer_id } : {}),
-      ...(query.search ? { OR: [
-        { orderNumber: { contains: query.search, mode: 'insensitive' as const } },
-        { customer: { customerName: { contains: query.search, mode: 'insensitive' as const } } },
-      ] } : {}),
-      ...(query.from || query.to
-        ? {
-            orderDate: {
-              ...(query.from && { gte: new Date(`${query.from}T00:00:00+07:00`) }),
-              ...(query.to && { lt: new Date(Date.parse(`${query.to}T00:00:00+07:00`) + 24 * 60 * 60 * 1000) }),
-            },
-          }
-        : {}),
-    };
+    const where = this.buildListWhere(query);
     const skip = (query.page - 1) * query.per_page;
     const [orders, total] = await this.prisma.$transaction([
       this.prisma.order.findMany({
@@ -147,6 +133,28 @@ export class OrdersService {
       total,
       total_pages: Math.ceil(total / query.per_page),
     });
+  }
+
+  async exportCsv(query: ListOrdersDto): Promise<string> {
+    const orders = await this.prisma.order.findMany({
+      where: this.buildListWhere(query),
+      orderBy: { orderDate: 'desc' },
+      include: { customer: true, items: { include: { product: true } } },
+    });
+    const rows = [
+      ['Nomor Order', 'Tanggal', 'Customer', 'Produk', 'Qty', 'Harga Satuan', 'Subtotal', 'Total Order'],
+      ...orders.flatMap((order) => order.items.map((item) => [
+        order.orderNumber,
+        new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeZone: 'Asia/Jakarta' }).format(order.orderDate),
+        order.customer.customerName,
+        item.product.productName,
+        String(item.quantity),
+        item.unitPrice.toString(),
+        item.subtotal.toString(),
+        order.totalAmount.toString(),
+      ])),
+    ];
+    return rows.map((row) => row.map((value) => this.escapeCsv(value)).join(',')).join('\n');
   }
 
   async findOne(id: bigint) {
@@ -171,6 +179,28 @@ export class OrdersService {
     });
     const next = latest ? Number(latest.orderNumber.slice(-4)) + 1 : 1;
     return `${prefix}${String(next).padStart(4, '0')}`;
+  }
+
+  private buildListWhere(query: ListOrdersDto): Prisma.OrderWhereInput {
+    return {
+      ...(query.customer_id ? { customerId: query.customer_id } : {}),
+      ...(query.search ? { OR: [
+        { orderNumber: { contains: query.search, mode: 'insensitive' as const } },
+        { customer: { customerName: { contains: query.search, mode: 'insensitive' as const } } },
+      ] } : {}),
+      ...(query.from || query.to
+        ? {
+            orderDate: {
+              ...(query.from && { gte: new Date(`${query.from}T00:00:00+07:00`) }),
+              ...(query.to && { lt: new Date(Date.parse(`${query.to}T00:00:00+07:00`) + 24 * 60 * 60 * 1000) }),
+            },
+          }
+        : {}),
+    };
+  }
+
+  private escapeCsv(value: string): string {
+    return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
   }
 
   private isUniqueViolation(error: unknown): boolean {

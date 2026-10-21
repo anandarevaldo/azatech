@@ -1,13 +1,13 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { Eye, Plus, Printer, Search, ShoppingCart, Trash2 } from 'lucide-react';
+import { Download, Eye, Plus, Printer, Search, ShoppingCart, Trash2 } from 'lucide-react';
 import { AppShell } from '../../components/app-shell';
 import { Button } from '../../components/ui/button';
 import { Drawer } from '../../components/ui/drawer';
 import { Input } from '../../components/ui/input';
 import { Pagination } from '../../components/ui/pagination';
-import { ApiError, apiFetch, ApiResponse, formatDate, formatRupiah } from '../../lib/api';
+import { ApiError, apiFetch, ApiResponse, downloadFile, formatDate, formatRupiah } from '../../lib/api';
 
 type Product = { id: string; productCode: string; productName: string; stock: number; price: string };
 type Customer = { id: string; customerName: string; phone?: string; customerAddress: string };
@@ -27,6 +27,7 @@ export default function OrdersPage() {
   const [revision, setRevision] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
@@ -90,6 +91,20 @@ export default function OrdersPage() {
     return !product || line.quantity < 1 || line.quantity > product.stock || lines.findIndex((item) => item.product_id === line.product_id) !== index;
   });
 
+  async function exportOrders() {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (from) params.set('from', from);
+      if (to) params.set('to', to);
+      if (historyCustomerId) params.set('customer_id', historyCustomerId);
+      if (query) params.set('search', query);
+      await downloadFile(`/orders/export?${params}`, 'riwayat-order.csv');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Export order gagal');
+    } finally { setExporting(false); }
+  }
+
   function openCreate() { setError(''); setLineErrors({}); setCustomerSearch(''); setCustomerId(''); setLines([{ product_id: '', quantity: 1 }]); setCreateOpen(true); }
   function updateLine(index: number, patch: Partial<Line>) { setLines((current) => current.map((line, position) => position === index ? { ...line, ...patch } : line)); setLineErrors({}); }
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -109,7 +124,7 @@ export default function OrdersPage() {
   }
 
   return <AppShell>
-    <header className="page-header list-header"><div><p className="eyebrow">Transaksi</p><h1>Pesanan</h1><p className="muted">Lihat riwayat dan buat pesanan baru dari katalog aktif.</p></div><Button type="button" onClick={openCreate}><Plus size={16} /> Buat pesanan</Button></header>
+    <header className="page-header list-header"><div><p className="eyebrow">Transaksi</p><h1>Pesanan</h1><p className="muted">Lihat riwayat dan buat pesanan baru dari katalog aktif.</p></div><div className="header-actions"><Button type="button" variant="secondary" onClick={exportOrders} disabled={exporting}><Download size={16} /> {exporting ? 'Menyiapkan…' : 'Export CSV'}</Button><Button type="button" onClick={openCreate}><Plus size={16} /> Buat pesanan</Button></div></header>
     {notice && <p className="success-notice" role="status">{notice}</p>}
     <section className="list-surface" aria-label="Riwayat pesanan">
       <div className="list-toolbar"><label className="list-search"><Search size={17} /><Input aria-label="Cari pesanan" placeholder="Cari nomor pesanan atau pelanggan" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} /></label><div className="list-filters"><label><span className="sr-only">Filter pelanggan</span><select aria-label="Filter pelanggan" value={historyCustomerId} onChange={(event) => { setHistoryCustomerId(event.target.value); setPage(1); }}><option value="">Semua pelanggan</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.customerName}</option>)}</select></label><label><span className="sr-only">Dari tanggal</span><Input aria-label="Dari tanggal" type="date" value={from} onChange={(event) => { setFrom(event.target.value); setPage(1); }} /></label><span className="date-separator">–</span><label><span className="sr-only">Sampai tanggal</span><Input aria-label="Sampai tanggal" type="date" min={from || undefined} value={to} onChange={(event) => { setTo(event.target.value); setPage(1); }} /></label>{(query || from || to || historyCustomerId) && <Button type="button" variant="ghost" onClick={() => { setQuery(''); setFrom(''); setTo(''); setHistoryCustomerId(''); setPage(1); }}>Reset</Button>}</div></div>
