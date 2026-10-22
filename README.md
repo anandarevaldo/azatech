@@ -9,6 +9,15 @@ Implementasi technical test Medior Fullstack Developer - Track A.
 - Frontend: React 19, Next.js App Router, TypeScript, CSS responsive.
 - Testing: Jest, Supertest, dan unit/integration-style service tests.
 
+### Alasan pemilihan stack
+
+- NestJS dipilih karena struktur module/controller/service membantu memisahkan HTTP layer, business logic, dan dependency database.
+- TypeScript strict dipakai agar kontrak DTO, service, dan response lebih aman saat aplikasi berkembang.
+- Prisma dipilih karena type-safe, memiliki migration dan seed yang eksplisit, serta nyaman dipakai bersama PostgreSQL.
+- PostgreSQL dipilih karena relasi, foreign key, constraint, dan database transaction penting untuk proses order yang atomic.
+- Next.js App Router dipakai untuk membangun admin workspace React yang terstruktur, responsive, dan mudah dipisahkan dari backend REST API.
+- Jest dan Supertest dipakai untuk menguji business rule serta endpoint dengan database PostgreSQL nyata.
+
 ## Struktur
 
 ```text
@@ -53,24 +62,40 @@ docker compose up --build -d
 docker compose run --rm backend node -r dotenv/config -r ts-node/register prisma/seed.ts
 ```
 
-Aplikasi tersedia di `http://localhost:3000`, API di `http://localhost:3001/api`, dan PostgreSQL Docker di port host `55432` (container tetap `5432`). Data PostgreSQL disimpan pada volume `azatech-postgres-data`. Jika port tersebut sedang dipakai, override dengan `POSTGRES_HOST_PORT`, `FRONTEND_HOST_PORT`, `BACKEND_HOST_PORT`, dan `NEXT_PUBLIC_API_URL`.
+Aplikasi tersedia di `http://localhost:3000`, API di `http://localhost:3001/api`, Swagger UI di `http://localhost:3001/api/docs`, dan PostgreSQL Docker di port host `55432` (container tetap `5432`). Data PostgreSQL disimpan pada volume `azatech-postgres-data`. Jika port tersebut sedang dipakai, override dengan `POSTGRES_HOST_PORT`, `FRONTEND_HOST_PORT`, `BACKEND_HOST_PORT`, dan `NEXT_PUBLIC_API_URL`.
 
 ## Logika order
 
 Order dibuat dalam satu database transaction. Server mengambil harga terbaru dari tabel produk, memvalidasi seluruh item dan stok, menghitung subtotal/total, membuat snapshot `unit_price`, lalu mengurangi stok. Jika salah satu validasi gagal, transaction dibatalkan sehingga tidak ada stok yang berubah. Produk dan customer menggunakan soft delete agar histori order tetap dapat dibaca.
 
-## Testing
+## Testing dan quality gate
 
 ```bash
+# Dari root repository
+npm run lint
+npm run test
+npm run build
+
+# Backend dengan PostgreSQL nyata
 cd backend
 npm test -- --runInBand
 npm run build
 npm run test:integration
 ```
 
+Frontend smoke E2E menggunakan Playwright dan otomatis menyalakan Next.js development server:
+
+```bash
+cd frontend
+npx playwright install chromium   # sekali di mesin baru
+npm run test:e2e
+```
+
 Test unit dan controller mencakup login, validasi input, akses tanpa token, order sukses, stok tidak cukup, dan produk duplikat. Integration test PostgreSQL dapat dijalankan dengan `npm run test:integration`; test ini membuat fixture terisolasi, memanggil REST API, memverifikasi transaction serta snapshot harga, lalu membersihkan fixture.
 
-GitHub Actions menjalankan migration, unit/controller test, integration test PostgreSQL, backend build, dan frontend build pada setiap push atau pull request ke `main`.
+GitHub Actions menjalankan lint, migration, unit/controller test, integration test PostgreSQL, backend build, frontend build, dan frontend smoke E2E pada setiap push atau pull request ke `main`.
+
+Dokumentasi OpenAPI tersedia dalam dua bentuk: file kontrak di `docs/openapi.yaml` dan Swagger UI interaktif di `/api/docs` saat backend berjalan. Gunakan tombol **Authorize** di Swagger UI untuk memasukkan access token JWT sebelum mencoba endpoint yang dilindungi.
 
 ## Asumsi dan keterbatasan
 
@@ -79,8 +104,19 @@ GitHub Actions menjalankan migration, unit/controller test, integration test Pos
 - Seed membuat 1 admin, 20 produk, 15 customer, dan minimal 30 order dalam 30 hari terakhir.
 - Frontend melakukan refresh access token sebelum mengarahkan user ke login.
 - Riwayat order dapat diekspor ke CSV dengan filter yang sedang aktif.
-- Jika ada waktu tambahan: refresh-token rotation, OpenAPI UI, dan E2E Playwright.
+- E2E saat ini berupa smoke test halaman login; alur transaksi penuh dapat ditambahkan setelah environment staging tersedia.
 
 ## AI Usage
 
 AI assistant digunakan untuk membantu menyusun struktur NestJS/Next.js, DTO dan validasi, skema Prisma, test case, serta dokumentasi. Seluruh kode ditinjau, dijalankan, dan disesuaikan secara manual terhadap requirement technical test.
+
+## Persiapan sesi review
+
+Topik yang dapat dijelaskan saat walkthrough:
+
+- request masuk melalui controller, melewati guard dan validation pipe, lalu diteruskan ke service;
+- order memakai satu database transaction agar validasi stok, pembuatan order, item, dan pengurangan stok berhasil atau gagal bersama-sama;
+- `unit_price` disimpan sebagai snapshot agar histori tidak berubah ketika harga katalog berubah;
+- access token dipakai untuk request API, sedangkan refresh token dipakai untuk memperoleh access token baru;
+- integration test menggunakan PostgreSQL nyata untuk memverifikasi behavior database, bukan hanya mock;
+- frontend memisahkan komponen UI, API client, halaman fitur, dan state loading/error.

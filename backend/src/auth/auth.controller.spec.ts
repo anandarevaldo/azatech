@@ -1,7 +1,7 @@
 import { INestApplication, UnprocessableEntityException, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
-import request = require('supertest');
+import request = require('supertest'); // eslint-disable-line @typescript-eslint/no-require-imports
 import { AuthController } from './auth.controller';
 import { AuthGuard } from './auth.guard';
 import { AuthService } from './auth.service';

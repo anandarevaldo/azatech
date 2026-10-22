@@ -4,7 +4,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { serializeValue, successResponse } from '../common/api-response';
 import { CreateOrderDto } from './dto/create-order.dto';

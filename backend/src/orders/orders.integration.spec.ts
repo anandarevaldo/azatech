@@ -1,7 +1,7 @@
 import { INestApplication, UnprocessableEntityException, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { Prisma } from '@prisma/client';
-import request = require('supertest');
+import request = require('supertest'); // eslint-disable-line @typescript-eslint/no-require-imports
 import { AppModule } from '../app.module';
 import { HttpExceptionFilter } from '../common/http-exception.filter';
 import { PrismaService } from '../database/prisma.service';
