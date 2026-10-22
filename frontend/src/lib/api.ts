@@ -28,7 +28,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     }
   }
 
-  if (response.status === 401 && typeof window !== 'undefined') { localStorage.removeItem('access_token'); localStorage.removeItem('refresh_token'); window.location.href = '/login'; }
+  if (response.status === 401 && typeof window !== 'undefined' && path !== '/auth/login') { localStorage.removeItem('access_token'); localStorage.removeItem('refresh_token'); window.location.href = '/login'; }
   const body = (await response.json().catch(() => ({}))) as { message?: string; errors?: Record<string, string[]> };
   if (!response.ok) throw new ApiError(body.message ?? 'Terjadi kesalahan pada server', body.errors);
   return body as T;
@@ -68,4 +68,9 @@ export async function downloadFile(path: string, filename: string): Promise<void
 }
 
 export function formatRupiah(value: string | number): string { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(value)); }
+export function formatEditableRupiah(value: string | number): string {
+  const digits = String(value).replace(/\D/g, '');
+  return digits ? new Intl.NumberFormat('id-ID').format(Number(digits)) : '';
+}
+export function parseRupiah(value: string): number { return Number(value.replace(/\D/g, '')) || 0; }
 export function formatDate(value: string): string { return new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(new Date(value)); }

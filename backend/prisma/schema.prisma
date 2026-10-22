@@ -29,6 +29,7 @@ model Product {
   id          BigInt    @id @default(autoincrement())
   productCode String    @unique @db.VarChar(20)
   productName String    @db.VarChar(150)
+  imageUrl    String?   @db.Text
   stock       Int       @default(0)
   price       Decimal   @db.Decimal(12, 2)
   deletedAt   DateTime?
@@ -49,6 +50,7 @@ model Customer {
   gender          Gender
   birthDate       DateTime  @db.Date
   phone           String?   @db.VarChar(20)
+  imageUrl        String?   @db.Text
   deletedAt       DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

@@ -21,4 +21,9 @@ export class CreateCustomerDto {
   @IsString()
   @MaxLength(20)
   phone?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000000)
+  image_url?: string;
 }

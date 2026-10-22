@@ -149,4 +149,28 @@ describeIntegration('Orders API with PostgreSQL', () => {
       .send({ customer_id: customerId, items: [{ product_id: Number(productId), quantity: 1 }] })
       .expect(401);
   });
+
+  it('keeps the original unit price after the product price changes', async () => {
+    const originalOrder = await prisma.order.findFirstOrThrow({
+      where: { customerId, items: { some: { productId } } },
+      orderBy: { id: 'asc' },
+      include: { items: true },
+    });
+    await prisma.product.update({
+      where: { id: productId },
+      data: { price: new Prisma.Decimal('15000.00') },
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ customer_id: customerId, items: [{ product_id: Number(productId), quantity: 1 }] })
+      .expect(201);
+
+    const oldItem = await prisma.orderItem.findFirstOrThrow({ where: { orderId: originalOrder.id } });
+    const newItem = await prisma.orderItem.findFirstOrThrow({ where: { orderId: BigInt(response.body.data.id as string) } });
+    expect(oldItem.unitPrice.toString()).toBe('12000');
+    expect(newItem.unitPrice.toString()).toBe('15000');
+    expect(originalOrder.totalAmount.toString()).toBe('24000');
+  });
 });

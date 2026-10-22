@@ -8,7 +8,7 @@ describe('OrdersService', () => {
       customer: { findFirst: jest.fn().mockResolvedValue({ id: 'customer-1' }) },
       product: {
         findMany: jest.fn().mockResolvedValue(products),
-        update: jest.fn().mockResolvedValue(undefined),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       order: {
         findFirst: jest.fn().mockResolvedValue(null),
@@ -30,8 +30,11 @@ describe('OrdersService', () => {
       '1',
     );
     expect(tx.order.create).toHaveBeenCalled();
-    expect(tx.product.update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { stock: { decrement: 2 } } }),
+    expect(tx.product.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 1n, deletedAt: null, stock: { gte: 2 } },
+        data: { stock: { decrement: 2 } },
+      }),
     );
   });
 
@@ -46,7 +49,7 @@ describe('OrdersService', () => {
       ),
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
     expect(tx.order.create).not.toHaveBeenCalled();
-    expect(tx.product.update).not.toHaveBeenCalled();
+    expect(tx.product.updateMany).not.toHaveBeenCalled();
   });
 
   it('rejects duplicate products in one order', async () => {
@@ -84,6 +87,21 @@ describe('OrdersService', () => {
       ),
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
     expect(tx.order.create).not.toHaveBeenCalled();
-    expect(tx.product.update).not.toHaveBeenCalled();
+    expect(tx.product.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects a stale stock check when another order consumed the stock', async () => {
+    const { service, tx } = createService([
+      { id: 1n, productName: 'Hydrococo', stock: 2, price: new Prisma.Decimal('12000.00') },
+    ]);
+    tx.product.updateMany.mockResolvedValueOnce({ count: 0 });
+
+    await expect(service.create(
+      { customer_id: 'customer-1', items: [{ product_id: 1, quantity: 2 }] },
+      '1',
+    )).rejects.toMatchObject({ response: {
+      message: 'Stok berubah saat pesanan diproses',
+      errors: { 'items.0.quantity': expect.any(Array) },
+    } });
   });
 });

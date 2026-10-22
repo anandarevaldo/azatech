@@ -9,6 +9,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main.js",
+    "seed": "node -r dotenv/config -r ts-node/register prisma/seed.ts",
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "test": "jest",
     "test:integration": "RUN_INTEGRATION_TESTS=1 node -r dotenv/config ./node_modules/jest/bin/jest.js --runInBand --runTestsByPath src/orders/orders.integration.spec.ts",
@@ -33,7 +34,8 @@
     "pg": "^8.23.1",
     "prisma": "7.10.1",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "ts-node": "^10.9.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
@@ -50,7 +52,6 @@
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.5",
     "ts-loader": "^9.5.2",
-    "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.72.0"

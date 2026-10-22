@@ -14,6 +14,11 @@ export class UpdateProductDto {
   product_name?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(1000000)
+  image_url?: string;
+
+  @IsOptional()
   @IsInt()
   @Min(0)
   stock?: number;

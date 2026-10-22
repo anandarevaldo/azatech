@@ -95,11 +95,18 @@ export class OrdersService {
           include: { items: true },
         });
 
-        for (const item of items) {
-          await tx.product.update({
-            where: { id: item.product.id },
+        for (const [index, item] of items.entries()) {
+          const updated = await tx.product.updateMany({
+            where: { id: item.product.id, deletedAt: null, stock: { gte: item.quantity } },
             data: { stock: { decrement: item.quantity } },
           });
+          if (updated.count !== 1) {
+            throw new UnprocessableEntityException({
+              success: false,
+              message: 'Stok berubah saat pesanan diproses',
+              errors: { [`items.${index}.quantity`]: [`Stok ${item.product.productName} tidak lagi mencukupi. Periksa jumlah pesanan.`] },
+            });
+          }
         }
         return createdOrder;
       });

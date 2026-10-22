@@ -26,7 +26,21 @@ frontend/  Next.js admin application
 docs/      technical test dan API documentation
 ```
 
-## Setup lokal
+## Mulai cepat dengan Docker
+
+Prasyarat: Docker Compose. Dari database kosong sampai aplikasi berjalan:
+
+```bash
+git clone https://github.com/anandarevaldo/azatech.git
+cd azatech
+cp .env.example .env
+docker compose up --build -d
+docker compose run --rm backend npm run seed
+```
+
+Sebelum menjalankan Compose, isi `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, dan `SEED_ADMIN_PASSWORD` di `.env` root dengan nilai lokal Anda. Login memakai `admin@azatech.id` dan password `SEED_ADMIN_PASSWORD` tersebut. Frontend: `http://localhost:3000`; API: `http://localhost:3001/api`; dokumentasi interaktif: `http://localhost:3001/api/docs`. Database Docker disimpan pada volume `azatech-postgres-data` dan diekspos di port host `55432`. Jika port bentrok, ubah `POSTGRES_HOST_PORT`, `FRONTEND_HOST_PORT`, `BACKEND_HOST_PORT`, dan `NEXT_PUBLIC_API_URL`.
+
+## Setup lokal tanpa Docker
 
 Prasyarat: Node.js 24+, PostgreSQL 14+ dan database `azatech`.
 
@@ -53,20 +67,9 @@ cd backend && npm run start:dev
 cd frontend && npm run dev
 ```
 
-## Menjalankan dengan Docker Compose
-
-Docker Compose menyediakan PostgreSQL, backend, dan frontend. Salin `.env.example` ke `.env` di root jika ingin mengganti secret default, lalu jalankan:
-
-```bash
-docker compose up --build -d
-docker compose run --rm backend node -r dotenv/config -r ts-node/register prisma/seed.ts
-```
-
-Aplikasi tersedia di `http://localhost:3000`, API di `http://localhost:3001/api`, Swagger UI di `http://localhost:3001/api/docs`, dan PostgreSQL Docker di port host `55432` (container tetap `5432`). Data PostgreSQL disimpan pada volume `azatech-postgres-data`. Jika port tersebut sedang dipakai, override dengan `POSTGRES_HOST_PORT`, `FRONTEND_HOST_PORT`, `BACKEND_HOST_PORT`, dan `NEXT_PUBLIC_API_URL`.
-
 ## Logika order
 
-Order dibuat dalam satu database transaction. Server mengambil harga terbaru dari tabel produk, memvalidasi seluruh item dan stok, menghitung subtotal/total, membuat snapshot `unit_price`, lalu mengurangi stok. Jika salah satu validasi gagal, transaction dibatalkan sehingga tidak ada stok yang berubah. Produk dan customer menggunakan soft delete agar histori order tetap dapat dibaca.
+Order dibuat dalam satu database transaction. Server mengambil harga terbaru dari tabel produk, memvalidasi seluruh item dan stok, menghitung subtotal/total, membuat snapshot `unit_price`, lalu mengurangi stok dengan syarat stok masih mencukupi. Jika satu item gagal atau stok berubah saat transaksi berlangsung, transaction dibatalkan sehingga tidak ada stok yang berubah. Produk dan customer menggunakan soft delete agar histori order tetap dapat dibaca. Kolom `imageUrl` ditambahkan pada produk dan pelanggan untuk foto opsional; index nama, tanggal order, relasi customer, dan soft delete mempercepat pencarian serta riwayat.
 
 ## Testing dan quality gate
 
@@ -83,7 +86,7 @@ npm run build
 npm run test:integration
 ```
 
-Frontend smoke E2E menggunakan Playwright dan otomatis menyalakan Next.js development server:
+Frontend E2E menggunakan Playwright dan otomatis menyalakan Next.js development server:
 
 ```bash
 cd frontend
@@ -91,11 +94,9 @@ npx playwright install chromium   # sekali di mesin baru
 npm run test:e2e
 ```
 
-Test unit dan controller mencakup login, validasi input, akses tanpa token, order sukses, stok tidak cukup, dan produk duplikat. Integration test PostgreSQL dapat dijalankan dengan `npm run test:integration`; test ini membuat fixture terisolasi, memanggil REST API, memverifikasi transaction serta snapshot harga, lalu membersihkan fixture.
+Test unit dan controller mencakup login, validasi input, akses tanpa token, order sukses, stok tidak cukup, dan produk duplikat. Lima integration test PostgreSQL dapat dijalankan dengan `npm run test:integration`; test ini membuat fixture terisolasi, memanggil REST API, memverifikasi transaction serta snapshot harga, lalu membersihkan fixture. Playwright mencakup form login, error login, konfirmasi hapus produk, navigasi mobile, serta dashboard dan detail order.
 
 GitHub Actions menjalankan lint, migration, unit/controller test, integration test PostgreSQL, backend build, frontend build, dan frontend smoke E2E pada setiap push atau pull request ke `main`.
-
-Dokumentasi OpenAPI tersedia dalam dua bentuk: file kontrak di `docs/openapi.yaml` dan Swagger UI interaktif di `/api/docs` saat backend berjalan. Gunakan tombol **Authorize** di Swagger UI untuk memasukkan access token JWT sebelum mencoba endpoint yang dilindungi.
 
 ## Asumsi dan keterbatasan
 
@@ -104,19 +105,8 @@ Dokumentasi OpenAPI tersedia dalam dua bentuk: file kontrak di `docs/openapi.yam
 - Seed membuat 1 admin, 20 produk, 15 customer, dan minimal 30 order dalam 30 hari terakhir.
 - Frontend melakukan refresh access token sebelum mengarahkan user ke login.
 - Riwayat order dapat diekspor ke CSV dengan filter yang sedang aktif.
-- E2E saat ini berupa smoke test halaman login; alur transaksi penuh dapat ditambahkan setelah environment staging tersedia.
+- E2E pembuatan transaksi penuh dengan backend nyata belum tersedia; saat ini alur dashboard dan detail order diuji dengan respons API terkontrol.
 
 ## AI Usage
 
-AI assistant digunakan untuk membantu menyusun struktur NestJS/Next.js, DTO dan validasi, skema Prisma, test case, serta dokumentasi. Seluruh kode ditinjau, dijalankan, dan disesuaikan secara manual terhadap requirement technical test.
-
-## Persiapan sesi review
-
-Topik yang dapat dijelaskan saat walkthrough:
-
-- request masuk melalui controller, melewati guard dan validation pipe, lalu diteruskan ke service;
-- order memakai satu database transaction agar validasi stok, pembuatan order, item, dan pengurangan stok berhasil atau gagal bersama-sama;
-- `unit_price` disimpan sebagai snapshot agar histori tidak berubah ketika harga katalog berubah;
-- access token dipakai untuk request API, sedangkan refresh token dipakai untuk memperoleh access token baru;
-- integration test menggunakan PostgreSQL nyata untuk memverifikasi behavior database, bukan hanya mock;
-- frontend memisahkan komponen UI, API client, halaman fitur, dan state loading/error.
+OpenAI Codex digunakan untuk membantu menyusun struktur NestJS/Next.js, DTO dan validasi, skema Prisma, test case, serta dokumentasi. Imagegen digunakan untuk menyiapkan asset logo transparan dari referensi yang diberikan. Hasilnya diperiksa melalui lint, build, automated test, dan peninjauan tampilan.

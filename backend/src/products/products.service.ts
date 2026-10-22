@@ -63,6 +63,7 @@ export class ProductsService {
         data: {
           productCode: dto.product_code,
           productName: dto.product_name,
+          imageUrl: dto.image_url,
           stock: dto.stock,
           price: dto.price,
         },
@@ -84,6 +85,7 @@ export class ProductsService {
         data: {
           ...(dto.product_code !== undefined && { productCode: dto.product_code }),
           ...(dto.product_name !== undefined && { productName: dto.product_name }),
+          ...(dto.image_url !== undefined && { imageUrl: dto.image_url }),
           ...(dto.stock !== undefined && { stock: dto.stock }),
           ...(dto.price !== undefined && { price: dto.price }),
         },

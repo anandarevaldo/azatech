@@ -54,6 +54,7 @@ export class CustomersService {
         gender: dto.gender,
         birthDate: new Date(dto.birth_date),
         phone: dto.phone,
+        imageUrl: dto.image_url,
       },
     });
     return successResponse('Pelanggan berhasil dibuat', serializeValue(customer));
@@ -69,6 +70,7 @@ export class CustomersService {
         ...(dto.gender !== undefined && { gender: dto.gender }),
         ...(dto.birth_date !== undefined && { birthDate: new Date(dto.birth_date) }),
         ...(dto.phone !== undefined && { phone: dto.phone }),
+        ...(dto.image_url !== undefined && { imageUrl: dto.image_url }),
       },
     });
     return successResponse('Pelanggan berhasil diperbarui', serializeValue(customer));

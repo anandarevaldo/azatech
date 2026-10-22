@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Azatech OrderHub">
+  <circle cx="32" cy="32" r="31" fill="#0752cc"/>
+  <path d="M20 16a23 23 0 0 0-7 29m11 6a23 23 0 0 0 27-10M37 13a23 23 0 0 1 14 23" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/>
+  <circle cx="32" cy="12" r="3.5" fill="#fff"/>
+  <circle cx="12" cy="46" r="3.5" fill="#fff"/>
+  <circle cx="52" cy="43" r="3.5" fill="#fff"/>
+  <path d="m17 46 13-29h4l13 29h-7l-8-18-8 18zm8-8h14l2 5H23z" fill="#fff"/>
+</svg>

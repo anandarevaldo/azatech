@@ -99,11 +99,25 @@ paths:
         - { name: search, in: query, schema: { type: string } }
         - { name: gender, in: query, schema: { type: string, enum: [PRIA, WANITA] } }
       responses: { '200': { description: Daftar customer } }
-    post: { summary: Tambah customer, responses: { '201': { description: Customer dibuat } } }
+    post:
+      summary: Tambah customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CustomerRequest' }
+      responses: { '201': { description: Customer dibuat } }
   /customers/{id}:
     parameters: [{ $ref: '#/components/parameters/Uuid' }]
     get: { summary: Detail customer, responses: { '200': { description: Customer } } }
-    put: { summary: Update customer, responses: { '200': { description: Customer diperbarui } } }
+    put:
+      summary: Update customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CustomerRequest' }
+      responses: { '200': { description: Customer diperbarui } }
     delete: { summary: Soft delete customer, responses: { '204': { description: Berhasil dihapus } } }
   /orders:
     get:
@@ -144,7 +158,14 @@ paths:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     get: { summary: Detail order, responses: { '200': { description: Detail order } } }
   /dashboard/summary:
-    get: { summary: Ringkasan dashboard, responses: { '200': { description: Summary transaksi dan stok } } }
+    get:
+      summary: Ringkasan dashboard
+      parameters:
+        - { name: period, in: query, schema: { type: string, enum: [weekly, quarterly, semesterly, yearly], default: weekly } }
+        - { name: date, in: query, schema: { type: string, format: date } }
+        - { name: from, in: query, schema: { type: string, format: date } }
+        - { name: to, in: query, schema: { type: string, format: date } }
+      responses: { '200': { description: Summary transaksi dan stok } }
 components:
   securitySchemes:
     bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
@@ -204,8 +225,19 @@ components:
       properties:
         product_code: { type: string, maxLength: 20 }
         product_name: { type: string, maxLength: 150 }
+        image_url: { type: string, description: "Foto produk sebagai data URL hasil upload file (JPG, PNG, WEBP, atau GIF)", maxLength: 1000000 }
         stock: { type: integer, minimum: 0 }
         price: { type: number, minimum: 0.01 }
+    CustomerRequest:
+      type: object
+      required: [customer_name, customer_address, gender, birth_date]
+      properties:
+        customer_name: { type: string, maxLength: 150 }
+        customer_address: { type: string, maxLength: 255 }
+        gender: { type: string, enum: [PRIA, WANITA] }
+        birth_date: { type: string, format: date }
+        phone: { type: string, maxLength: 20 }
+        image_url: { type: string, description: "Foto pelanggan sebagai data URL hasil upload file atau URL HTTP(S)", maxLength: 1000000 }
     OrderRequest:
       type: object
       required: [customer_id, items]
