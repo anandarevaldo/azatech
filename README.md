@@ -23,7 +23,6 @@ Implementasi technical test Medior Fullstack Developer - Track A.
 ```text
 backend/   REST API, migration, seed, business logic, tests
 frontend/  Next.js admin application
-docs/      technical test dan API documentation
 ```
 
 ## Mulai cepat dengan Docker
@@ -109,4 +108,4 @@ GitHub Actions menjalankan lint, migration, unit/controller test, integration te
 
 ## AI Usage
 
-OpenAI Codex digunakan untuk membantu menyusun struktur NestJS/Next.js, DTO dan validasi, skema Prisma, test case, serta dokumentasi. Imagegen digunakan untuk menyiapkan asset logo transparan dari referensi yang diberikan. Hasilnya diperiksa melalui lint, build, automated test, dan peninjauan tampilan.
+OpenAI Codex digunakan untuk membantu menyusun struktur NestJS/Next.js, DTO dan validasi, skema Prisma, test case, serta dokumentasi. Hasilnya diperiksa melalui lint, build, automated test, dan peninjauan tampilan.
